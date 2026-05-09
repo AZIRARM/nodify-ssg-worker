@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile-Worker
+    ports:
+      - "${WORKER_PORT:-5000}:5000"
+    environment:
+      - NODIFY_API_URL=${NODIFY_API_URL:-https://nodify-api.azirar.ovh}
+      - WORKER_SECRET=${WORKER_SECRET:-}
+      - SITES_DIR=/sites
+    volumes:
+      - sites_data:/sites
+    restart: unless-stopped
+
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile-Admin
+    ports:
+      - "${ADMIN_PORT:-8080}:8080"
+    environment:
+      - WORKER_URL=http://worker:5000
+    volumes:
+      - sites_data:/sites
+    depends_on:
+      - worker
+    restart: unless-stopped
+
+  web:
+    image: nginx:alpine
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    volumes:
+      - sites_data:/usr/share/nginx/html
+    restart: unless-stopped
+
+volumes:
+  sites_data:

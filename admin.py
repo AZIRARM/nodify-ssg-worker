@@ -1,0 +1,26 @@
+from flask import Flask, render_template, jsonify, request
+import requests
+import os
+
+app = Flask(__name__,
+            static_folder='static',
+            template_folder='templates')
+
+WORKER_URL = os.environ.get('WORKER_URL', 'http://worker:5000')
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/api/sites')
+def api_sites():
+    resp = requests.get(f"{WORKER_URL}/list")
+    return jsonify(resp.json())
+
+@app.route('/api/delete/<name>', methods=['DELETE'])
+def api_delete(name):
+    resp = requests.delete(f"{WORKER_URL}/delete/{name}")
+    return jsonify(resp.json())
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
