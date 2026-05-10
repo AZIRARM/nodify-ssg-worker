@@ -1,7 +1,13 @@
 from flask import Flask, request, jsonify
-import os, subprocess, base64, json, shutil
+from werkzeug.middleware.proxy_fix import ProxyFix
+import os
+import subprocess
+import base64
+import json
+import shutil
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_prefix=1)
 
 API_URL = os.environ.get('NODIFY_API_URL', '')
 WORKER_SECRET = os.environ.get('WORKER_SECRET', '')
@@ -81,7 +87,6 @@ def process_node(node_code, output_dir):
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    # Vérification du secret
     if WORKER_SECRET:
         auth_header = request.headers.get('Authorization', '')
         expected = f"Bearer {WORKER_SECRET}"

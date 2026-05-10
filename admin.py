@@ -1,10 +1,12 @@
 from flask import Flask, render_template, jsonify, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 import requests
 import os
 
 app = Flask(__name__,
             static_folder='static',
             template_folder='templates')
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_prefix=1)
 
 WORKER_URL = os.environ.get('WORKER_URL', 'http://worker:5000')
 
