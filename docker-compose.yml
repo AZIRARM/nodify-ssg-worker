@@ -12,7 +12,7 @@ services:
       - WORKER_SECRET=${WORKER_SECRET:-}
       - SITES_DIR=/sites
     volumes:
-      - sites_data:/sites
+      - ${SITES_VOLUME:-/dockers/nodify-ssg-worker/sites}:/sites
     restart: unless-stopped
 
   admin:
@@ -24,7 +24,7 @@ services:
     environment:
       - WORKER_URL=http://worker:5000
     volumes:
-      - sites_data:/sites
+      - ${SITES_VOLUME:-/dockers/nodify-ssg-worker/sites}:/sites
     depends_on:
       - worker
     restart: unless-stopped
@@ -34,8 +34,5 @@ services:
     ports:
       - "${WEB_PORT:-3000}:80"
     volumes:
-      - sites_data:/usr/share/nginx/html
+      - ${SITES_VOLUME:-/dockers/nodify-ssg-worker/sites}:/usr/share/nginx/html
     restart: unless-stopped
-
-volumes:
-  sites_data:
