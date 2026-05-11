@@ -9,6 +9,13 @@ import shutil
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_prefix=1)
 
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,DELETE')
+    return response
+
 API_URL = os.environ.get('NODIFY_API_URL', '')
 WORKER_SECRET = os.environ.get('WORKER_SECRET', '')
 SITES_DIR = os.environ.get('SITES_DIR', '/sites')
@@ -34,7 +41,7 @@ def save_file(data, path):
 def process_node(node_code, output_dir):
     url = f"{API_URL}/contents/node/code/{node_code}?fillValues=true&withFiles=true"
     response = fetch_url(url)
-
+    
     if response and response != 'null':
         try:
             items = json.loads(response)
@@ -63,9 +70,9 @@ def process_node(node_code, output_dir):
                 elif payload:
                     filename = file_name if file_name else f"{code}.html"
                     save_content(payload, os.path.join(output_dir, filename))
-        except:
-            pass
-
+        except Exception as e:
+            print(f"Error processing contents: {e}")
+    
     url = f"{API_URL}/nodes/parent/{node_code}"
     response = fetch_url(url)
     if response and response != 'null' and response != '[]':
@@ -82,31 +89,34 @@ def process_node(node_code, output_dir):
                     target_dir = os.path.join(output_dir, child_folder if child_folder else node_name)
                     os.makedirs(target_dir, exist_ok=True)
                     process_node(child_code, target_dir)
-        except:
-            pass
+        except Exception as e:
+            print(f"Error processing nodes: {e}")
 
-@app.route('/webhook', methods=['POST'])
+@app.route('/webhook', methods=['OPTIONS', 'POST'])
 def webhook():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     if WORKER_SECRET:
         auth_header = request.headers.get('Authorization', '')
         expected = f"Bearer {WORKER_SECRET}"
         if auth_header != expected:
             return jsonify({'error': 'Unauthorized'}), 401
-
+    
     data = request.json
     node_code = data.get('client_payload', {}).get('code')
     site_name = data.get('client_payload', {}).get('folder', 'default')
-
+    
     if not node_code:
         return jsonify({'error': 'No node code'}), 400
-
+    
     site_dir = os.path.join(SITES_DIR, site_name)
     if os.path.exists(site_dir):
         shutil.rmtree(site_dir)
     os.makedirs(site_dir, exist_ok=True)
-
+    
     process_node(node_code, site_dir)
-
+    
     return jsonify({'status': 'ok', 'site': site_name}), 200
 
 @app.route('/list', methods=['GET'])
@@ -116,7 +126,7 @@ def list_sites():
         for name in os.listdir(SITES_DIR):
             path = os.path.join(SITES_DIR, name)
             if os.path.isdir(path):
-                size = sum(os.path.getsize(os.path.join(dirpath, f))
+                size = sum(os.path.getsize(os.path.join(dirpath, f)) 
                           for dirpath, _, files in os.walk(path) for f in files)
                 sites.append({'name': name, 'size': round(size / 1024, 2)})
     return jsonify(sites)
