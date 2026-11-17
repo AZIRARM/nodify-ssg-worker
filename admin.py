@@ -11,7 +11,11 @@ SITES_URL = os.environ.get('SITES_URL', 'https://nodify-ssg-sites.azirar.ovh')
 
 @app.route('/')
 def index():
-    return render_template('index.html', sites_url=SITES_URL)
+    return render_template(
+        'index.html',
+        sites_url=SITES_URL,
+        webhook_url=os.environ.get('WEBHOOK_URL', 'http://localhost:5500/webhook'),
+    )
 
 @app.route('/api/sites')
 def api_sites():

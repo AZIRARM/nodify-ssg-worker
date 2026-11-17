@@ -100,8 +100,7 @@ function escapeHtml(text) {
 // Webhook URL display
 const webhookUrlEl = document.getElementById('webhookUrl');
 if (webhookUrlEl) {
-    const fullUrl = `${window.location.protocol}//${window.location.host}/webhook`;
-    webhookUrlEl.textContent = fullUrl;
+    webhookUrlEl.textContent = window.WEBHOOK_URL || 'http://localhost:5500/webhook';
 }
 
 // Search input
